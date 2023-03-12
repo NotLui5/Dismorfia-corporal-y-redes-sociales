@@ -1,0 +1,87 @@
+---
+title: "DEPRE FCMUCE"
+author: "Luis Armando Figueroa"
+date: "2023-03-10"
+output: html_document
+---
+---
+title: "Meta-analysis of sglt2"
+knit: (function(inputFile, encoding) { rmarkdown::render(inputFile, encoding = encoding, output_file = paste0(dirname(inputFile),'/README.md')) })
+output: github_document
+---
+
+<i> Analysis and visualization developed by [Luis A. Figueroa](https://twitter.com/LuisFig1706) </i>
+
+The purpose of this site is to make our meta-analysis as transparent as possible. All information or documents used, from the protocol to the final publication, will be available here. If further information is needed, please do not hesitate to contact us.
+
+```{r packages, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.path = "Cont Output Figures/", dev='svg') # dev = 'png'
+
+library("metafor")
+library("tidyverse")
+library("rmarkdown")
+library("forestplot")
+library("readxl")
+```
+
+```{r cleaning, include=FALSE}
+base <- read_xlsx("BASE DE DATOS.xlsx") #Esta es la base de datos otrogada por el grupo
+# de investigación de octavo semestre de medicina, luego de su rocelección de resultados con 
+# encuestas, anonimización.
+
+# Borrar columnas que no serán usadas
+base <- base[,-1]
+
+# Abbreviate variables (cons = consentimiento inf, bsq = body shape Questionnaire, 
+#                       urs = uso de redes sociales, trs = tipo de red social
+#                       time = tiempo en redes sociales)
+names(base) <- c('cons', 'sex', 'semestre', 'bsq1', 'bsq2', 'bsq3',
+                'bsq4', 'bsq5', 'bsq6', 'bsq7', 'bsq8', 'bsq9', 'bsq10', 'bsq11',
+                'bsq12', 'bsq13', 'bsq14', 'bsq15', 'bsq16', 'urs', 'trs', 'time')
+#Excluir quienes no acepten consentimiento informado y time < 1 hora
+base <- filter(base, cons == "Sí, acepto", time != "< 1 hora diaria")
+base$totalbsq <- rowSums(base[ ,4:19])
+base$presenciadc <- ifelse(base$totalbsq < 80, "No", "Si") 
+base$ursm4 <- ifelse(base$time == "> 4 horas diarias", "Si", "No") 
+
+#tablas de 2x2 para cada variable analizar
+#semestre y dismorfia corporal
+nodcsem <- rbind(sum(nrow(filter(base, semestre == "Séptimo", presenciadc == "No")),
+                     nrow(filter(base, semestre == "Octavo", presenciadc == "No"))),
+                 sum(nrow(filter(base, semestre == "Noveno", presenciadc == "No"))))
+                 
+sidcsem <- rbind(sum(nrow(filter(base, semestre == "Séptimo", presenciadc == "Si")),
+                     nrow(filter(base, semestre == "Octavo", presenciadc == "Si"))),
+                 sum(nrow(filter(base, semestre == "Noveno", presenciadc == "Si"))))
+
+semdc <- cbind(sidcsem, nodcsem)
+colnames(semdc) <- c('Si dismorfia corporal', 'No dismorfia corporal')
+rownames(semdc) <- c('Séptimo y octavo', 'Noveno')
+semdc 
+
+#Sexo y dismorfia corporal
+nodcsex <- rbind(sum(nrow(filter(base, sex == "Hombre", presenciadc == "No"))),
+                 sum(nrow(filter(base, sex == "Mujer", presenciadc == "No"))))
+                 
+sidcsex <- rbind(sum(nrow(filter(base, sex == "Hombre", presenciadc == "Si"))),
+                 sum(nrow(filter(base, sex == "Mujer", presenciadc == "Si"))))
+
+sexdc <- cbind(sidcsex, nodcsex)
+colnames(sexdc) <- c('Si dismorfia corporal', 'No dismorfia corporal')
+rownames(sexdc) <- c('Hombre', 'Mujer')
+sexdc 
+
+#Uso de redes sociales mayor a 4 horas y dismorfia corporal
+nodcursm4 <- rbind(sum(nrow(filter(base, ursm4 == "Si", presenciadc == "No"))),
+                 sum(nrow(filter(base, ursm4 == "No", presenciadc == "No"))))
+                 
+sidcursm4 <- rbind(sum(nrow(filter(base, ursm4 == "Si", presenciadc == "Si"))),
+                 sum(nrow(filter(base, ursm4 == "No", presenciadc == "Si"))))
+
+ursm4dc <- cbind(sidcursm4, nodcursm4)
+colnames(ursm4dc) <- c('Si dismorfia corporal', 'No dismorfia corporal')
+rownames(ursm4dc) <- c('Si uso de redes sociales >4h', 'No uso de redes sociales >4h')
+ursm4dc 
+
+```
